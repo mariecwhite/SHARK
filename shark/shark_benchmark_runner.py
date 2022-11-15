@@ -23,7 +23,7 @@ from datetime import datetime
 import time
 import csv
 import os
-
+import tensorflow as tf
 
 class OnnxFusionOptions(object):
     def __init__(self):
@@ -142,6 +142,9 @@ class SharkBenchmarkRunner(SharkRunner):
         print(
             f"TF benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
         )
+
+        tf.saved_model.save(model, f"/tmp/tf_models_512/{modelname}")
+
         return [
             f"{shark_args.num_iterations/(end-begin)}",
             f"{((end-begin)/shark_args.num_iterations)*1000}",
