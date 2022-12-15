@@ -6,7 +6,7 @@ from transformers import (
     TFBertModel,
 )
 
-BATCH_SIZE = 1
+BATCH_SIZE = 8
 MAX_SEQUENCE_LENGTH = 128
 
 ################################## MHLO/TF models #########################################
@@ -87,16 +87,13 @@ def get_TFhf_model(name):
         "microsoft/MiniLM-L12-H384-uncased"
     )
     text = "Replace me by any text you'd like."
+    text = [text] * BATCH_SIZE
     encoded_input = tokenizer(
         text,
         padding="max_length",
         truncation=True,
         max_length=MAX_SEQUENCE_LENGTH,
     )
-    for key in encoded_input:
-        encoded_input[key] = tf.expand_dims(
-            tf.convert_to_tensor(encoded_input[key]), 0
-        )
     test_input = (
         encoded_input["input_ids"],
         encoded_input["attention_mask"],
@@ -133,8 +130,9 @@ def preprocess_input(
     model_name, text="This is just used to compile the model"
 ):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    batch_text = [text] * BATCH_SIZE
     inputs = tokenizer(
-        text,
+        batch_text,
         padding="max_length",
         return_tensors="tf",
         truncation=True,
@@ -167,8 +165,8 @@ def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
 ##################### TensorFlow Keras Resnet Models #########################################################
 # Static shape, including batch size (1).
 # Can be dynamic once dynamic shape support is ready.
-RESNET_INPUT_SHAPE = [1, 224, 224, 3]
-EFFICIENTNET_INPUT_SHAPE = [1, 384, 384, 3]
+RESNET_INPUT_SHAPE = [BATCH_SIZE, 224, 224, 3]
+EFFICIENTNET_INPUT_SHAPE = [BATCH_SIZE, 384, 384, 3]
 
 
 class ResNetModule(tf.Module):
@@ -224,6 +222,7 @@ def load_image(path_to_image, width, height, channels):
     image = tf.image.decode_image(image, channels=channels)
     image = tf.image.resize(image, (width, height))
     image = image[tf.newaxis, :]
+    image = tf.tile(image, [BATCH_SIZE, 1, 1, 1])
     return image
 
 
@@ -256,7 +255,7 @@ import requests
 
 # Create a set of input signature.
 input_signature_img_cls = [
-    tf.TensorSpec(shape=[1, 3, 224, 224], dtype=tf.float32),
+    tf.TensorSpec(shape=[BATCH_SIZE, 3, 224, 224], dtype=tf.float32),
 ]
 
 
@@ -304,6 +303,9 @@ def preprocess_input_image(model_name):
     )
     # inputs: {'pixel_values': <tf.Tensor: shape=(1, 3, 224, 224), dtype=float32, numpy=array([[[[]]]], dtype=float32)>}
     inputs = feature_extractor(images=image, return_tensors="tf")
+    pixel_values = inputs["pixel_values"]
+    pixel_values = tf.tile(pixel_values, [BATCH_SIZE, 1, 1, 1])
+    inputs["pixel_values"] = pixel_values
 
     return [inputs[str(*inputs)]]
 
