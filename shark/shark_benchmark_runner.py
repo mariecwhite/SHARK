@@ -117,6 +117,11 @@ class SharkBenchmarkRunner(SharkRunner):
         frontend_model.to(torch_device)
         input.to(torch_device)
 
+        begin = time.time()
+        frontend_model.forward(input)
+        end = time.time()
+        init_time = 1000 * (end - begin)
+
         for i in range(shark_args.num_warmup_iterations):
             frontend_model.forward(input)
 
@@ -132,6 +137,7 @@ class SharkBenchmarkRunner(SharkRunner):
         return [
             f"{shark_args.num_iterations/(end-begin)}",
             f"{((end-begin)/shark_args.num_iterations)*1000}",
+            f"{init_time}",
         ]
 
     def benchmark_tf(self, modelname):
@@ -149,13 +155,18 @@ class SharkBenchmarkRunner(SharkRunner):
 
         from tank.model_utils_tf import get_tf_model
 
-        # tf_device = "/GPU:0" if self.device == "cuda" else "/CPU:0"
-        tf_device = "/CPU:0"
+        tf_device = "/GPU:0" if self.device == "cuda" else "/CPU:0"
+        #tf_device = "/CPU:0"
         with tf.device(tf_device):
             model, input, = get_tf_model(
                 modelname
             )[:2]
             frontend_model = model
+
+            begin = time.time()
+            frontend_model.forward(*input)
+            end = time.time()
+            init_time = 1000 * (end - begin)
 
             for i in range(shark_args.num_warmup_iterations):
                 frontend_model.forward(*input)
@@ -172,12 +183,13 @@ class SharkBenchmarkRunner(SharkRunner):
             return [
                 f"{shark_args.num_iterations/(end-begin)}",
                 f"{((end-begin)/shark_args.num_iterations)*1000}",
+                f"{init_time}",
             ]
 
     def benchmark_c(self):
         result = run_benchmark_module(self.benchmark_cl)
         print(f"Shark-IREE-C benchmark:{result} iter/second")
-        return [f"{result}", f"{1000/result}"]
+        return [f"{result}", f"{1000/result}", "n/a"]
 
     def benchmark_python(self, inputs):
         input_list = [x for x in inputs]
@@ -195,6 +207,7 @@ class SharkBenchmarkRunner(SharkRunner):
         return [
             f"{shark_args.num_iterations/(end-begin)}",
             f"{((end-begin)/shark_args.num_iterations)*1000}",
+            "n/a",
         ]
 
     def benchmark_onnx(self, modelname, inputs):
@@ -308,6 +321,7 @@ for currently supported models. Exiting benchmark ONNX."
             "data_type",
             "iter/sec",
             "ms/iter",
+            "init_latency_ms",
             "vs. PyTorch/TF",
             "iterations",
             "param_count",
@@ -346,6 +360,7 @@ for currently supported models. Exiting benchmark ONNX."
                         (
                             bench_result["iter/sec"],
                             bench_result["ms/iter"],
+                            bench_result["init_latency_ms"],
                         ) = self.benchmark_frontend(modelname)
                         self.frontend_result = bench_result["ms/iter"]
                         bench_result["vs. PyTorch/TF"] = "baseline"
@@ -363,6 +378,7 @@ for currently supported models. Exiting benchmark ONNX."
                     (
                         bench_result["iter/sec"],
                         bench_result["ms/iter"],
+                        bench_result["init_latency_ms"],
                     ) = self.benchmark_python(inputs)
 
                     bench_result[
@@ -376,6 +392,7 @@ for currently supported models. Exiting benchmark ONNX."
                     (
                         bench_result["iter/sec"],
                         bench_result["ms/iter"],
+                        bench_result["init_latency_ms"],
                     ) = self.benchmark_c()
 
                     bench_result[
@@ -389,6 +406,7 @@ for currently supported models. Exiting benchmark ONNX."
                     (
                         bench_result["iter/sec"],
                         bench_result["ms/iter"],
+                        bench_result["init_latency_ms"],
                     ) = self.benchmark_onnx(modelname, inputs)
 
                 bench_result["dialect"] = self.mlir_dialect
