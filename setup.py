@@ -8,11 +8,11 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 PACKAGE_VERSION = os.environ.get("SHARK_PACKAGE_VERSION") or "0.0.4"
 backend_deps = []
-if "NO_BACKEND" in os.environ.keys():
-    backend_deps = [
-        "iree-compiler>=20221022.190",
-        "iree-runtime>=20221022.190",
-    ]
+#if "NO_BACKEND" in os.environ.keys():
+#    backend_deps = [
+#        "iree-compiler>=20221022.190",
+#        "iree-runtime>=20221022.190",
+#    ]
 
 setup(
     name="nodai-SHARK",
