@@ -36,6 +36,7 @@ def create_hash(file_name):
 def save_torch_model(torch_model_list):
     from tank.model_utils import (
         get_hf_model,
+        get_hf_seq2seq_model,
         get_vision_model,
         get_hf_img_cls_model,
         get_fp16_model,
@@ -45,6 +46,7 @@ def save_torch_model(torch_model_list):
         torch_reader = csv.reader(csvfile, delimiter=",")
         fields = next(torch_reader)
         for row in torch_reader:
+            print(f"row {row}")
             torch_model_name = row[0]
             tracing_required = row[1]
             model_type = row[2]
@@ -84,6 +86,8 @@ def save_torch_model(torch_model_list):
                 model, input, _ = get_vision_model(torch_model_name)
             elif model_type == "hf":
                 model, input, _ = get_hf_model(torch_model_name)
+            elif model_type == "hf_seq2seq":
+                model, input, _ = get_hf_seq2seq_model(torch_model_name)
             elif model_type == "hf_img_cls":
                 model, input, _ = get_hf_img_cls_model(torch_model_name)
             elif model_type == "fp16":
@@ -127,6 +131,7 @@ def save_tf_model(tf_model_list):
         get_causal_lm_model,
         get_keras_model,
         get_TFhf_model,
+        get_tfhf_seq2seq_model,
     )
     import tensorflow as tf
 
@@ -152,12 +157,14 @@ def save_tf_model(tf_model_list):
             print(f"Generating artifacts for model {tf_model_name}")
             if model_type == "hf":
                 model, input, _ = get_causal_lm_model(tf_model_name)
-            if model_type == "img":
+            elif model_type == "img":
                 model, input, _ = get_causal_image_model(tf_model_name)
-            if model_type == "keras":
+            elif model_type == "keras":
                 model, input, _ = get_keras_model(tf_model_name)
-            if model_type == "TFhf":
+            elif model_type == "TFhf":
                 model, input, _ = get_TFhf_model(tf_model_name)
+            elif model_type == "tfhf_seq2seq":
+                model, input, _ = get_tfhf_seq2seq_model(tf_model_name)
 
             tf_model_name = tf_model_name.replace("/", "_")
             tf_model_dir = os.path.join(WORKDIR, str(tf_model_name) + "_tf")
@@ -272,9 +279,9 @@ if __name__ == "__main__":
     tf_model_csv = os.path.join(
         os.path.dirname(__file__), "tank", "tf_model_list.csv"
     )
-    tflite_model_csv = os.path.join(
-        os.path.dirname(__file__), "tank", "tflite", "tflite_model_list.csv"
-    )
+    #tflite_model_csv = os.path.join(
+    #    os.path.dirname(__file__), "tank", "tflite", "tflite_model_list.csv"
+    #)
 
     save_torch_model(torch_model_csv)
     save_tf_model(tf_model_csv)

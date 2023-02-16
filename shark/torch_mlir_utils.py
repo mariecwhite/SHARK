@@ -67,6 +67,7 @@ def get_torch_mlir_module(
 
     tempfile.tempdir = "."
 
+    print(f"Getting torch mlir module for {module} {input}")
     mlir_module = torch_mlir.compile(
         module,
         input,

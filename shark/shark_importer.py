@@ -84,6 +84,13 @@ class SharkImporter:
     def _tf_mlir(self, func_name, save_dir="."):
         from iree.compiler import tf as tfc
 
+        print(f"Save_dir: {save_dir}")
+
+        import tensorflow as tf
+        options = tf.saved_model.SaveOptions(save_debug_info=True)
+        tf.saved_model.save(self.module, "/tmp/t5-base", options=options)
+        print(f"Saved into /tmp/t5-base")
+
         return tfc.compile_module(
             self.module,
             exported_names=[func_name],

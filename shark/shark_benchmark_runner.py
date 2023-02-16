@@ -353,6 +353,7 @@ for currently supported models. Exiting benchmark ONNX."
                     bench_result["notes"],
                 ) = ["", "", ""]
                 if e == "frontend":
+                    print(f"bench_result: {bench_result}")
                     bench_result["engine"] = frontend
                     if check_requirements(frontend):
                         (
