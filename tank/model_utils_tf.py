@@ -7,7 +7,6 @@ from transformers import (
 )
 
 BATCH_SIZE = 1
-MAX_SEQUENCE_LENGTH = 128
 
 ################################## MHLO/TF models #########################################
 # TODO : Generate these lists or fetch model source from tank/tf/tf_model_list.csv
@@ -66,12 +65,14 @@ def get_tf_model(name):
         )
 
 
-##################### Tensorflow Hugging Face LM Models ###################################
+##################### Tensorflow Hugging Face Bert Models ###################################
+BERT_MAX_SEQUENCE_LENGTH = 128
+
 # Create a set of 2-dimensional inputs
 tf_bert_input = [
-    tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
-    tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
-    tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
+    tf.TensorSpec(shape=[BATCH_SIZE, BERT_MAX_SEQUENCE_LENGTH], dtype=tf.int32),
+    tf.TensorSpec(shape=[BATCH_SIZE, BERT_MAX_SEQUENCE_LENGTH], dtype=tf.int32),
+    tf.TensorSpec(shape=[BATCH_SIZE, BERT_MAX_SEQUENCE_LENGTH], dtype=tf.int32),
 ]
 
 
@@ -101,7 +102,7 @@ def get_TFhf_model(name):
         text,
         padding="max_length",
         truncation=True,
-        max_length=MAX_SEQUENCE_LENGTH,
+        max_length=BERT_MAX_SEQUENCE_LENGTH,
     )
     for key in encoded_input:
         encoded_input[key] = tf.expand_dims(
@@ -125,34 +126,34 @@ def compare_tensors_tf(tf_tensor, numpy_tensor):
     return np.allclose(tf_to_numpy, numpy_tensor, rtol, atol)
 
 
-##################### Tensorflow Hugging Face Masked LM Models ###################################
-from transformers import TFAutoModelForMaskedLM, AutoTokenizer
-import tensorflow as tf
-
-# Create a set of input signature.
-input_signature_maskedlm = [
-    tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
-    tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
-]
-
-# For supported models please see here:
-# https://huggingface.co/docs/transformers/model_doc/auto#transformers.TFAutoModelForCasualLM
-
-
+# Tokenizer for language models
 def preprocess_input(
-    model_name, text="This is just used to compile the model"
+    model_name, max_length, text="This is just used to compile the model"
 ):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     inputs = tokenizer(
         text,
-        padding="max_length",
         return_tensors="tf",
+        padding="max_length",
         truncation=True,
-        max_length=MAX_SEQUENCE_LENGTH,
+        max_length=max_length,
     )
     return inputs
 
+##################### Tensorflow Hugging Face Masked LM Models ###################################
+from transformers import TFAutoModelForMaskedLM, AutoTokenizer
+import tensorflow as tf
 
+MASKED_LM_MAX_SEQUENCE_LENGTH = 128
+
+# Create a set of input signature.
+input_signature_maskedlm = [
+    tf.TensorSpec(shape=[BATCH_SIZE, MASKED_LM_MAX_SEQUENCE_LENGTH], dtype=tf.int32),
+    tf.TensorSpec(shape=[BATCH_SIZE, MASKED_LM_MAX_SEQUENCE_LENGTH], dtype=tf.int32),
+]
+
+# For supported models please see here:
+# https://huggingface.co/docs/transformers/model_doc/auto#transformers.TFAutoModelForMaskedLM
 class MaskedLM(tf.Module):
     def __init__(self, model_name):
         super(MaskedLM, self).__init__()
@@ -166,9 +167,9 @@ class MaskedLM(tf.Module):
         return self.m.predict(input_ids, attention_mask)
 
 
-def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
+def get_masked_lm_model(hf_name, text="Hello, this is the default text."):
     model = MaskedLM(hf_name)
-    encoded_input = preprocess_input(hf_name, text)
+    encoded_input = preprocess_input(hf_name, MASKED_LM_MAX_SEQUENCE_LENGTH, text)
     test_input = (encoded_input["input_ids"], encoded_input["attention_mask"])
     actual_out = model.forward(*test_input)
     return model, test_input, actual_out
@@ -194,12 +195,8 @@ class TFHFSeq2SeqLanguageModel(tf.Module):
         self.model = TFT5Model.from_pretrained(model_name, return_dict=True)
         self.model.predict = lambda x, y: self.model(x, decoder_input_ids=y)[0]
 
-        #config = AutoConfig.from_pretrained(hf_model_name)
-        #self.model = TFAutoModelForSeq2SeqLM.from_config(config)
-
     def preprocess_input(self, text):
         return self.tokenizer(text, **self.tokenization_kwargs)
-
 
     @tf.function(input_signature=input_signature_t5, jit_compile=True)
     def forward(self, input_ids, decoder_input_ids):
@@ -220,15 +217,51 @@ def get_tfhf_seq2seq_model(name):
     print(f"actual_out: {actual_out}")
     return m, test_input, actual_out
 
-    from transformers import T5Tokenizer
 
-    #model = TFHFSeq2SeqLanguageModel(name)
-    #tokenizer = T5Tokenizer.from_pretrained(name)
-    #encoded_input = tokenizer(text, return_tensors="tf", padding="max_length",
-    #                          truncation=True, max_length=T5_MAX_SEQUENCE_LENGTH)
-    #test_input = (encoded_input["input_ids"], encoded_input["attention_mask"])
-    #actual_out = model.forward(*test_input)
-    #return model, test_input, actual_out
+##################### Tensorflow Hugging Face Causal LM Models ###################################
+
+from transformers import AutoConfig, TFAutoModelForCausalLM, TFGPT2Model
+
+CAUSAL_LM_MAX_SEQUENCE_LENGTH = 16
+
+input_signature_causallm = [
+    tf.TensorSpec(shape=[BATCH_SIZE, CAUSAL_LM_MAX_SEQUENCE_LENGTH], dtype=tf.int32),
+    tf.TensorSpec(shape=[BATCH_SIZE, CAUSAL_LM_MAX_SEQUENCE_LENGTH], dtype=tf.int32),
+]
+
+# For supported models please see here:
+# https://huggingface.co/docs/transformers/model_doc/auto#transformers.TFAutoModelForCausalLM
+# For more background, see:
+# https://huggingface.co/blog/tf-xla-generate
+class CausalLM(tf.Module):
+    def __init__(self, model_name):
+        super(CausalLM, self).__init__()
+        # Decoder-only models need left padding.
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left", pad_token="</s>")
+        self.tokenization_kwargs = {"pad_to_multiple_of": CAUSAL_LM_MAX_SEQUENCE_LENGTH, "padding": True, "return_tensors": "tf"}
+        self.model = TFGPT2Model.from_pretrained(model_name, return_dict=True)
+        self.model.predict = lambda x, y: self.model(input_ids=x, attention_mask=y)[0]
+
+    def preprocess_input(self, text):
+        return self.tokenizer(text, **self.tokenization_kwargs)
+
+    @tf.function(input_signature=input_signature_causallm, jit_compile=True)
+    def forward(self, input_ids, attention_mask):
+        # Return only the first result without decoding.
+        #print(f"input_ids: {input_ids}")
+        #return self.model.generate(input_ids=input_ids, **self.generation_kwargs)[0]
+        #return self.model(input_ids=input_ids, attention_mask=attention_mask)
+        return self.model.predict(input_ids, attention_mask)
+
+
+def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
+    model = CausalLM(hf_name)
+    encoded_input = model.preprocess_input(text)
+    test_input = (encoded_input["input_ids"], encoded_input["attention_mask"])
+    print(f"test_input {test_input}")
+    actual_out = model.forward(*test_input)
+    print(f"actual_out: {actual_out}")
+    return model, test_input, actual_out
 
 
 ##################### TensorFlow Keras Resnet Models #########################################################

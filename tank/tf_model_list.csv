@@ -8,3 +8,4 @@ google/mobilebert-uncased,hf
 resnet50,keras
 google/vit-base-patch16-224,img
 bert-large-uncased,hf
+gpt2,hf_causallm

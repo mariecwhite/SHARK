@@ -378,7 +378,10 @@ def get_results(
 ):
     """Runs a .vmfb file given inputs and config and returns output."""
     device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
+    print(f"get_results() Running {compiled_vm} with function_name: {function_name}, input: {input}, "
+          f"config: {config}, frontend: {frontend}, send_to_host: {send_to_host}")
     result = compiled_vm[function_name](*device_inputs)
+    #result = []
     result_tensors = []
     if isinstance(result, tuple):
         if send_to_host:

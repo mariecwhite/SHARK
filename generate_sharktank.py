@@ -128,6 +128,7 @@ def save_torch_model(torch_model_list):
 def save_tf_model(tf_model_list):
     from tank.model_utils_tf import (
         get_causal_image_model,
+        get_masked_lm_model,
         get_causal_lm_model,
         get_keras_model,
         get_TFhf_model,
@@ -156,8 +157,8 @@ def save_tf_model(tf_model_list):
             input = None
             print(f"Generating artifacts for model {tf_model_name}")
             if model_type == "hf":
-                model, input, _ = get_causal_lm_model(tf_model_name)
-            elif model_type == "img":
+                model, input, _ = get_masked_lm_model(tf_model_name)
+            if model_type == "img":
                 model, input, _ = get_causal_image_model(tf_model_name)
             elif model_type == "keras":
                 model, input, _ = get_keras_model(tf_model_name)
@@ -165,6 +166,8 @@ def save_tf_model(tf_model_list):
                 model, input, _ = get_TFhf_model(tf_model_name)
             elif model_type == "tfhf_seq2seq":
                 model, input, _ = get_tfhf_seq2seq_model(tf_model_name)
+            elif model_type == "hf_causallm":
+                model, input, _ = get_causal_lm_model(tf_model_name)
 
             tf_model_name = tf_model_name.replace("/", "_")
             tf_model_dir = os.path.join(WORKDIR, str(tf_model_name) + "_tf")
@@ -283,6 +286,6 @@ if __name__ == "__main__":
     #    os.path.dirname(__file__), "tank", "tflite", "tflite_model_list.csv"
     #)
 
-    save_torch_model(torch_model_csv)
+    #save_torch_model(torch_model_csv)
     save_tf_model(tf_model_csv)
     #save_tflite_model(tflite_model_csv)
