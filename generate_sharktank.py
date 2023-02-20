@@ -286,6 +286,6 @@ if __name__ == "__main__":
     #    os.path.dirname(__file__), "tank", "tflite", "tflite_model_list.csv"
     #)
 
-    #save_torch_model(torch_model_csv)
-    save_tf_model(tf_model_csv)
+    save_torch_model(torch_model_csv)
+    #save_tf_model(tf_model_csv)
     #save_tflite_model(tflite_model_csv)

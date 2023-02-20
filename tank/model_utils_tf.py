@@ -212,9 +212,7 @@ def get_tfhf_seq2seq_model(name):
     decoder_input_ids = m.model._shift_right(decoder_input_ids)
 
     test_input = (encoded_input_ids, decoder_input_ids)
-    print(f"test_input {test_input}")
     actual_out = m.forward(*test_input)
-    print(f"actual_out: {actual_out}")
     return m, test_input, actual_out
 
 
@@ -222,7 +220,7 @@ def get_tfhf_seq2seq_model(name):
 
 from transformers import AutoConfig, TFAutoModelForCausalLM, TFGPT2Model
 
-CAUSAL_LM_MAX_SEQUENCE_LENGTH = 16
+CAUSAL_LM_MAX_SEQUENCE_LENGTH = 1024
 
 input_signature_causallm = [
     tf.TensorSpec(shape=[BATCH_SIZE, CAUSAL_LM_MAX_SEQUENCE_LENGTH], dtype=tf.int32),
@@ -258,9 +256,7 @@ def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
     model = CausalLM(hf_name)
     encoded_input = model.preprocess_input(text)
     test_input = (encoded_input["input_ids"], encoded_input["attention_mask"])
-    print(f"test_input {test_input}")
     actual_out = model.forward(*test_input)
-    print(f"actual_out: {actual_out}")
     return model, test_input, actual_out
 
 

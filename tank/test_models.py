@@ -136,7 +136,7 @@ class SharkModuleTester:
 
     def create_and_check_module(self, dynamic, device):
         shark_args.local_tank_cache = self.local_tank_cache
-        shark_args.force_update_tank = self.update_tank
+        shark_args.force_update_tank = False
         shark_args.dispatch_benchmarks = self.benchmark_dispatches
         if self.benchmark_dispatches is not None:
             _m = self.config["model_name"].split("/")
@@ -287,9 +287,10 @@ class SharkModuleTest(unittest.TestCase):
         self.module_tester.local_tank_cache = self.pytestconfig.getoption(
             "local_tank_cache"
         )
-        self.module_tester.update_tank = self.pytestconfig.getoption(
-            "update_tank"
-        )
+        #self.module_tester.update_tank = self.pytestconfig.getoption(
+        #    "update_tank"
+        #)
+        self.module_tester.update_tank = False
         self.module_tester.tank_url = self.pytestconfig.getoption("tank_url")
         self.module_tester.benchmark_dispatches = self.pytestconfig.getoption(
             "benchmark_dispatches"
