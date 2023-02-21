@@ -29,6 +29,7 @@ hf_img_cls_models = [
 ]
 hf_seq2seq_models = [
     "t5-base",
+    "t5-large",
 ]
 
 
@@ -38,7 +39,6 @@ def get_torch_model(modelname):
     elif modelname in hf_img_cls_models:
         return get_hf_img_cls_model(modelname)
     elif modelname in hf_seq2seq_models:
-        print(f"calling get_hf_seq2seq_model for {modelname}")
         return get_hf_seq2seq_model(modelname)
     elif "fp16" in modelname:
         return get_fp16_model(modelname)
@@ -153,7 +153,7 @@ class HFSeq2SeqLanguageModel(torch.nn.Module):
         return self.tokenizer(text, **self.tokenization_kwargs)
 
     def forward(self, input_ids, decoder_input_ids):
-        return self.model(input_ids, decoder_input_ids=decoder_input_ids)[0]
+        return self.model.forward(input_ids, decoder_input_ids=decoder_input_ids)[0]
 
 
 def get_hf_seq2seq_model(name):
@@ -163,9 +163,7 @@ def get_hf_seq2seq_model(name):
     decoder_input_ids = m.model._shift_right(decoder_input_ids)
 
     test_input = (encoded_input_ids, decoder_input_ids)
-    print(f"test_input {test_input}")
     actual_out = m.forward(*test_input)
-    print(f"actual_out: {actual_out}")
     return m, test_input, actual_out
 
 

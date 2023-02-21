@@ -41,6 +41,7 @@ tfhf_models = [
 ]
 tfhf_seq2seq_models = [
     "t5-base",
+    "t5-large",
 ]
 img_models = [
     "google/vit-base-patch16-224",
