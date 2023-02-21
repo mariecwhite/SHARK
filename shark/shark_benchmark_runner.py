@@ -123,14 +123,21 @@ class SharkBenchmarkRunner(SharkRunner):
         input.to(torch_device)
 
         for i in range(shark_args.num_warmup_iterations):
+            begin = time.time()
             frontend_model.forward(input)
+            end = time.time()
+            latency = (end - begin) * 1000
+            print(f"Warmup iteration {i} latency: {latency}ms")
 
         begin = time.time()
         for i in range(shark_args.num_iterations):
             out = frontend_model.forward(input)
-            if i == shark_args.num_iterations - 1:
-                end = time.time()
-                break
+            #if i == shark_args.num_iterations - 1:
+            #    end = time.time()
+            #    break
+        end = time.time()
+        latency = ((end - begin) / shark_args.num_iterations) * 1000
+        print(f"Final latency: {latency}ms")
         print(
             f"Torch benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
         )
