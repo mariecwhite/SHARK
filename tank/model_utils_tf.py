@@ -36,6 +36,9 @@ maskedlm_models = [
     "hf-internal-testing/tiny-random-flaubert",
     "xlm-roberta",
 ]
+causallm_models = [
+    "gpt2",
+]
 tfhf_models = [
     "microsoft/MiniLM-L12-H384-uncased",
 ]
@@ -53,6 +56,8 @@ def get_tf_model(name):
     if name in keras_models:
         return get_keras_model(name)
     elif name in maskedlm_models:
+        return get_masked_lm_model(name)
+    elif name in causallm_models:
         return get_causal_lm_model(name)
     elif name in tfhf_models:
         return get_TFhf_model(name)

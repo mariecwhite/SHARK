@@ -128,6 +128,8 @@ class SharkBenchmarkRunner(SharkRunner):
             end = time.time()
             latency = (end - begin) * 1000
             print(f"Warmup iteration {i} latency: {latency}ms")
+        if latency > 1000:
+            shark_args.num_iterations = 10
 
         begin = time.time()
         for i in range(shark_args.num_iterations):
@@ -161,16 +163,23 @@ class SharkBenchmarkRunner(SharkRunner):
                 modelname
             )[:2]
             frontend_model = model
-
+           
             for i in range(shark_args.num_warmup_iterations):
+                begin = time.time()
                 frontend_model.forward(*input)
+                end = time.time()
+                latency = (end - begin) * 1000
+                print(f"Warmup latency: {latency} ms")
+            if latency > 1000:
+                shark_args.num_iterations = 10
 
             begin = time.time()
             for i in range(shark_args.num_iterations):
                 out = frontend_model.forward(*input)
-                if i == shark_args.num_iterations - 1:
-                    end = time.time()
-                    break
+            end = time.time()
+            latency = (end - begin) / shark_args.num_iterations * 1000
+            print(f"Final latency: {latency} ms")
+
             print(
                 f"TF benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
             )
@@ -187,13 +196,18 @@ class SharkBenchmarkRunner(SharkRunner):
     def benchmark_python(self, inputs):
         input_list = [x for x in inputs]
         for i in range(shark_args.num_warmup_iterations):
+            begin = time.time()
             self.run("forward", input_list)
+            end = time.time()
+            latency = (end - begin) * 1000
+        if latency > 1000:
+            shark_args.num_iterations = 10
 
         begin = time.time()
         for i in range(shark_args.num_iterations):
             out = self.run("forward", input_list)
-            if i == shark_args.num_iterations - 1:
-                end = time.time()
+            #if i == shark_args.num_iterations - 1:
+        end = time.time()
         print(
             f"Shark-IREE Python benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
         )

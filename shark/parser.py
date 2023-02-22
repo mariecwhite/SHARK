@@ -25,7 +25,7 @@ parser.add_argument(
 parser.add_argument(
     "--enable_tf32",
     type=bool,
-    default=False,
+    default=True,
     help="Enables TF32 precision calculations on supported GPUs.",
 )
 parser.add_argument(
@@ -59,7 +59,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--update_tank",
-    default=True,
+    default=False,
     action="store_true",
     help="When enabled, SHARK downloader will update local shark_tank if local hash is different from latest upstream hash.",
 )

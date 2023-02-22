@@ -16,12 +16,12 @@ import subprocess as sp
 import hashlib
 import numpy as np
 from pathlib import Path
-from apps.stable_diffusion.src.models import (
-    model_wrappers as mw,
-)
-from apps.stable_diffusion.src.utils.stable_args import (
-    args,
-)
+#from apps.stable_diffusion.src.models import (
+#    model_wrappers as mw,
+#)
+#from apps.stable_diffusion.src.utils.stable_args import (
+#    args,
+#)
 
 
 def create_hash(file_name):
@@ -57,31 +57,6 @@ def save_torch_model(torch_model_list):
 
             model = None
             input = None
-            if model_type == "stable_diffusion":
-                args.use_tuned = False
-                args.import_mlir = True
-                args.use_tuned = False
-                args.local_tank_cache = WORKDIR
-
-                precision_values = ["fp16"]
-                seq_lengths = [64, 77]
-                for precision_value in precision_values:
-                    args.precision = precision_value
-                    for length in seq_lengths:
-                        model = mw.SharkifyStableDiffusionModel(
-                            model_id=torch_model_name,
-                            custom_weights="",
-                            precision=precision_value,
-                            max_len=length,
-                            width=512,
-                            height=512,
-                            use_base_vae=False,
-                            debug=True,
-                            sharktank_dir=WORKDIR,
-                            generate_vmfb=False,
-                        )
-                        model()
-                continue
             if model_type == "vision":
                 model, input, _ = get_vision_model(torch_model_name)
             elif model_type == "hf":
