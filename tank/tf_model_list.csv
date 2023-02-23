@@ -1,12 +1,5 @@
 model_name, model_type
-efficientnet_b0,keras
 efficientnet_b7,keras
-t5-base,tfhf_seq2seq
 t5-large,tfhf_seq2seq
-bert-base-uncased,hf
-microsoft/MiniLM-L12-H384-uncased,TFhf
-google/mobilebert-uncased,hf
 resnet50,keras
-google/vit-base-patch16-224,img
 bert-large-uncased,hf
-gpt2,hf_causallm

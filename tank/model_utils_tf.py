@@ -6,7 +6,7 @@ from transformers import (
     TFBertModel,
 )
 
-BATCH_SIZE = 1
+BATCH_SIZE = 8
 
 ################################## MHLO/TF models #########################################
 # TODO : Generate these lists or fetch model source from tank/tf/tf_model_list.csv
@@ -104,16 +104,13 @@ def get_TFhf_model(name):
         "microsoft/MiniLM-L12-H384-uncased"
     )
     text = "Replace me by any text you'd like."
+    text = [text] * BATCH_SIZE
     encoded_input = tokenizer(
         text,
         padding="max_length",
         truncation=True,
         max_length=BERT_MAX_SEQUENCE_LENGTH,
     )
-    for key in encoded_input:
-        encoded_input[key] = tf.expand_dims(
-            tf.convert_to_tensor(encoded_input[key]), 0
-        )
     test_input = (
         encoded_input["input_ids"],
         encoded_input["attention_mask"],
@@ -137,8 +134,9 @@ def preprocess_input(
     model_name, max_length, text="This is just used to compile the model"
 ):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    batch_text = [text] * BATCH_SIZE
     inputs = tokenizer(
-        text,
+        batch_text,
         return_tensors="tf",
         padding="max_length",
         truncation=True,
@@ -213,8 +211,13 @@ class TFHFSeq2SeqLanguageModel(tf.Module):
 
 def get_tfhf_seq2seq_model(name):
     m = TFHFSeq2SeqLanguageModel(name)
-    encoded_input_ids = m.preprocess_input("Studies have been shown that owning a dog is good for you").input_ids
-    decoder_input_ids = m.preprocess_input("Studies show that").input_ids
+    text = "Studies have been shown that owning a dog is good for you"
+    batched_text = [text] * BATCH_SIZE
+    encoded_input_ids = m.preprocess_input(batched_text).input_ids
+
+    text = "Studies show that"
+    batched_text = [text] * BATCH_SIZE
+    decoder_input_ids = m.preprocess_input(batched_text).input_ids
     decoder_input_ids = m.model._shift_right(decoder_input_ids)
 
     test_input = (encoded_input_ids, decoder_input_ids)
@@ -260,7 +263,8 @@ class CausalLM(tf.Module):
 
 def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
     model = CausalLM(hf_name)
-    encoded_input = model.preprocess_input(text)
+    batched_text = [text] * BATCH_SIZE
+    encoded_input = model.preprocess_input(batched_text)
     test_input = (encoded_input["input_ids"], encoded_input["attention_mask"])
     actual_out = model.forward(*test_input)
     return model, test_input, actual_out
@@ -269,10 +273,10 @@ def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
 ##################### TensorFlow Keras Resnet Models #########################################################
 # Static shape, including batch size (1).
 # Can be dynamic once dynamic shape support is ready.
-RESNET_INPUT_SHAPE = [1, 224, 224, 3]
-EFFICIENTNET_V2_S_INPUT_SHAPE = [1, 384, 384, 3]
-EFFICIENTNET_B0_INPUT_SHAPE = [1, 224, 224, 3]
-EFFICIENTNET_B7_INPUT_SHAPE = [1, 600, 600, 3]
+RESNET_INPUT_SHAPE = [BATCH_SIZE, 224, 224, 3]
+EFFICIENTNET_V2_S_INPUT_SHAPE = [BATCH_SIZE, 384, 384, 3]
+EFFICIENTNET_B0_INPUT_SHAPE = [BATCH_SIZE, 224, 224, 3]
+EFFICIENTNET_B7_INPUT_SHAPE = [BATCH_SIZE, 600, 600, 3]
 
 
 class ResNetModule(tf.Module):
@@ -376,6 +380,7 @@ def load_image(path_to_image, width, height, channels):
     image = tf.image.decode_image(image, channels=channels)
     image = tf.image.resize(image, (width, height))
     image = image[tf.newaxis, :]
+    image = tf.tile(image, [BATCH_SIZE, 1, 1, 1])
     return image
 
 
@@ -412,7 +417,7 @@ import requests
 
 # Create a set of input signature.
 input_signature_img_cls = [
-    tf.TensorSpec(shape=[1, 3, 224, 224], dtype=tf.float32),
+    tf.TensorSpec(shape=[BATCH_SIZE, 3, 224, 224], dtype=tf.float32),
 ]
 
 
@@ -460,6 +465,9 @@ def preprocess_input_image(model_name):
     )
     # inputs: {'pixel_values': <tf.Tensor: shape=(1, 3, 224, 224), dtype=float32, numpy=array([[[[]]]], dtype=float32)>}
     inputs = feature_extractor(images=image, return_tensors="tf")
+    pixel_values = inputs["pixel_values"]
+    pixel_values = tf.tile(pixel_values, [BATCH_SIZE, 1, 1, 1])
+    inputs["pixel_values"] = pixel_values
 
     return [inputs[str(*inputs)]]
 
