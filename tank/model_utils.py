@@ -7,7 +7,7 @@ import sys
 
 torch.manual_seed(0)
 
-BATCH_SIZE = 8
+BATCH_SIZE = 1
 
 vision_models = [
     "alexnet",

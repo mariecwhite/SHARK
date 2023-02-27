@@ -6,7 +6,7 @@ from transformers import (
     TFBertModel,
 )
 
-BATCH_SIZE = 8
+BATCH_SIZE = 1
 
 ################################## MHLO/TF models #########################################
 # TODO : Generate these lists or fetch model source from tank/tf/tf_model_list.csv
@@ -111,11 +111,11 @@ def get_TFhf_model(name):
         truncation=True,
         max_length=BERT_MAX_SEQUENCE_LENGTH,
     )
-    test_input = (
-        encoded_input["input_ids"],
-        encoded_input["attention_mask"],
-        encoded_input["token_type_ids"],
-    )
+    test_input = [
+        tf.reshape(tf.convert_to_tensor(encoded_input["input_ids"], dtype=tf.int32), [BATCH_SIZE, BERT_MAX_SEQUENCE_LENGTH]),
+        tf.reshape(tf.convert_to_tensor(encoded_input["attention_mask"], dtype=tf.int32), [BATCH_SIZE, BERT_MAX_SEQUENCE_LENGTH]),
+        tf.reshape(tf.convert_to_tensor(encoded_input["token_type_ids"], dtype=tf.int32), [BATCH_SIZE, BERT_MAX_SEQUENCE_LENGTH])
+    ]
     actual_out = model.forward(*test_input)
     return model, test_input, actual_out
 
